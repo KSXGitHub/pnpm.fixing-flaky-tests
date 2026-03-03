@@ -22,7 +22,7 @@ import {
 } from '@pnpm/store.cafs'
 import { symlinkDependencySync } from '@pnpm/symlink-dependency'
 import { type BundledManifest, type DependencyManifest } from '@pnpm/types'
-import { parentPort } from 'worker_threads'
+import { parentPort, threadId } from 'worker_threads'
 import { equalOrSemverEqual } from './equalOrSemverEqual.js'
 import {
   type AddDirToStoreMessage,
@@ -439,9 +439,11 @@ function writeIndexFile (filePath: string, data: PackageFilesIndex): void {
   // There is actually no need to create the directory in 99% of cases.
   // So by using cafs API, we'll improve performance.
   fs.mkdirSync(targetDir, { recursive: true })
-  // Drop the last 10 characters and append the PID to create a shorter unique temp filename.
+  // Drop the last 10 characters and append the PID and thread ID to create a shorter unique temp filename.
   // This avoids ENAMETOOLONG errors on systems with path length limits.
-  const temp = `${filePath.slice(0, -10)}${process.pid}`
+  // Both PID and thread ID are needed: PID alone is not sufficient when multiple worker threads
+  // within the same process call this function concurrently (they share the same PID).
+  const temp = `${filePath.slice(0, -10)}${process.pid}${threadId}`
   writeMsgpackFileSync(temp, data)
   optimisticRenameOverwrite(temp, filePath)
 }
