@@ -178,6 +178,7 @@
     "nosystem",
     "nothrow",
     "npmcli",
+    "npmmirror",
     "npmignore",
     "npmjs",
     "ntfs",
