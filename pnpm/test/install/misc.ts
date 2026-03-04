@@ -44,12 +44,17 @@ test('bin files are found by lifecycle scripts', () => {
 skipOnWindows('install --lockfile-only', async () => {
   const project = prepare()
 
-  await execPnpm(['install', 'rimraf@2.5.1', '--lockfile-only'])
+  // is-positive@1.0.0 is pre-seeded in the Verdaccio registry mock and has no
+  // transitive npm dependencies, making the test resilient to proxy failures.
+  // rimraf@2.5.1 was previously used but its dependency glob@6.0.4 requires
+  // minimatch@2.x which is not available in the registry mock without proxying
+  // to npm, causing intermittent ERR_PNPM_FETCH_404 failures on CI.
+  await execPnpm(['install', 'is-positive@1.0.0', '--lockfile-only'])
 
-  project.hasNot('rimraf')
+  project.hasNot('is-positive')
 
   const lockfile = project.readLockfile()
-  expect(lockfile.packages).toHaveProperty(['rimraf@2.5.1'])
+  expect(lockfile.packages).toHaveProperty(['is-positive@1.0.0'])
 })
 
 test('install --no-lockfile', async () => {

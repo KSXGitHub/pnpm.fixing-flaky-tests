@@ -3,7 +3,6 @@ import fs from 'fs'
 import net from 'net'
 import path from 'path'
 import execa from 'execa'
-import { setTimeout } from 'timers/promises'
 import { promisify } from 'util'
 import { prepare } from '@pnpm/prepare'
 import { createTestIpcServer } from '@pnpm/test-ipc-server'
@@ -39,8 +38,7 @@ describe('TestEchoServer', () => {
       await client.sendLine('hello')
       await client.sendLine('world')
 
-      // Wait a short amount of time for the server to handle incoming messages.
-      await setTimeout(50)
+      await server.waitForLines(2)
       expect(server.getBuffer()).toBe('hello\nworld\n')
       expect(server.getLines()).toStrictEqual(['hello', 'world'])
     })
@@ -51,8 +49,7 @@ describe('TestEchoServer', () => {
       await client.sendLine('hello')
       await client.sendLine('world')
 
-      // Wait a short amount of time for the server to handle incoming messages.
-      await setTimeout(50)
+      await server.waitForLines(2)
       expect(server.getLines()).toStrictEqual(['hello', 'world'])
 
       server.clear()

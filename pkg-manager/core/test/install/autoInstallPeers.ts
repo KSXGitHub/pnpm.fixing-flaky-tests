@@ -412,6 +412,8 @@ test('installation on a package with many complex circular dependencies does not
 })
 
 // This test may be removed if autoInstallPeers will become true by default
+// 10-minute timeout: resolves real packages from registry.npmmirror.com (Angular,
+// Ionic, tsparticles…) which can exceed the default 4-minute Jest timeout on slow CI.
 test('installation on a workspace with many complex circular dependencies does not fail when auto install peers is on', async () => {
   prepareEmpty()
   await mutateModules([
@@ -568,7 +570,7 @@ test('installation on a workspace with many complex circular dependencies does n
       },
     ],
   }))
-})
+}, 10 * 60 * 1000)
 
 test('do not override the direct dependency with an auto installed peer dependency', async () => {
   const includedDeps = new Set([

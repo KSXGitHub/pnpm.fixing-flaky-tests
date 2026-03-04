@@ -1,4 +1,5 @@
 import net from 'node:net'
+import { EventEmitter } from 'node:events'
 import { promisify, stripVTControlCharacters } from 'node:util'
 import { computeHandlePath } from './computeHandlePath.js'
 
@@ -22,6 +23,7 @@ if (Symbol.dispose === undefined) {
 export class TestIpcServer implements AsyncDisposable {
   private readonly server: net.Server
   private buffer = ''
+  private readonly emitter = new EventEmitter()
 
   public readonly listenPath: string
 
@@ -32,6 +34,7 @@ export class TestIpcServer implements AsyncDisposable {
     server.on('connection', (client) => {
       client.on('data', data => {
         this.buffer += data.toString()
+        this.emitter.emit('data')
       })
     })
   }
@@ -79,6 +82,35 @@ export class TestIpcServer implements AsyncDisposable {
    */
   public clear (): void {
     this.buffer = ''
+  }
+
+  /**
+   * Wait until at least `count` newline-terminated lines have been received,
+   * or until the optional `timeout` (in ms, default 5000) elapses.
+   * Returns the lines received so far.
+   */
+  public waitForLines (count: number, timeout = 5000): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      const check = (): void => {
+        const lines = this.getLines()
+        if (lines.length >= count) {
+          cleanup()
+          resolve(lines)
+        }
+      }
+      const onTimeout = (): void => {
+        cleanup()
+        reject(new Error(`waitForLines: timed out waiting for ${count} lines after ${timeout}ms (received ${this.getLines().length} lines)`))
+      }
+      const cleanup = (): void => {
+        this.emitter.removeListener('data', check)
+        clearTimeout(timer)
+      }
+      const timer = setTimeout(onTimeout, timeout)
+      this.emitter.on('data', check)
+      // Check immediately in case lines already arrived
+      check()
+    })
   }
 
   /**
